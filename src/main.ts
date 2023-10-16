@@ -4,6 +4,11 @@ const app: HTMLDivElement = document.querySelector("#app")!;
 
 const gameName = "Julian's game";
 
+const zero = 0;
+const one = 1;
+const maxCanvasWidth = 256;
+const maxCanvasHeight = 256;
+
 document.title = gameName;
 
 const header = document.createElement("h1");
@@ -21,7 +26,9 @@ const ctx = canvas.getContext("2d");
 app.append(canvas);
 
 ctx!.fillStyle = "white";
-ctx!.fillRect(20, 0, 256, 256);
+ctx!.fillRect(zero, zero, maxCanvasWidth, maxCanvasHeight);
+
+app.append(document.createElement("br"));
 
 const clearBtn = document.createElement("button");
 clearBtn.innerHTML = "Clear";
@@ -29,55 +36,72 @@ app.append(clearBtn);
 
 clearBtn.addEventListener("click", (e) => {
   console.log(e);
-  ctx?.clearRect(0, 0, 500, 500);
+  strokes.splice(zero, strokes.length);
+  canvas.dispatchEvent(drawingChanged);
 });
 
-let isDrawing = false;
-let x = 0;
-let y = 0;
+const cursor = { active: false, x: zero, y: zero };
+
+interface Pair {
+  x: number;
+  y: number;
+}
+
+const strokes: Pair[][] = [];
+let currStroke: Pair[] = [];
+
+const drawingChanged = new CustomEvent("drawing-changed");
 
 canvas.addEventListener("mousedown", (e) => {
   setOffset(e);
-  isDrawing = true;
+  cursor.active = true;
+  currStroke = [];
+  strokes.push(currStroke);
+  currStroke.push({ x: cursor.x, y: cursor.y });
+  canvas.dispatchEvent(drawingChanged);
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (isDrawing) {
-    drawLine(ctx!, e);
+  if (cursor.active) {
     setOffset(e);
+    currStroke.push({ x: cursor.x, y: cursor.y });
+    canvas.dispatchEvent(drawingChanged);
   }
 });
 
 canvas.addEventListener("mouseleave", (e) => {
-  if (isDrawing) {
-    drawLine(ctx!, e);
-    setOffset(e);
-    x = 0;
-    y = 0;
-    isDrawing = false;
-  }
+  console.log(e);
+  cursor.active = false;
+  canvas.dispatchEvent(drawingChanged);
 });
 
 canvas.addEventListener("mouseup", (e) => {
-  if (isDrawing) {
-    drawLine(ctx!, e);
-    x = 0;
-    y = 0;
-    isDrawing = false;
-  }
+  console.log(e);
+  cursor.active = false;
+  canvas.dispatchEvent(drawingChanged);
+});
+
+canvas.addEventListener("drawing-changed", (e) => {
+  console.log(e);
+  redraw();
 });
 
 function setOffset(e: MouseEvent): void {
-  x = e.offsetX;
-  y = e.offsetY;
+  cursor.x = e.offsetX;
+  cursor.y = e.offsetY;
 }
 
-function drawLine(ctx: CanvasRenderingContext2D, e: MouseEvent): void {
-  ctx.beginPath();
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 1;
-  ctx.moveTo(x, y);
-  ctx.lineTo(e.offsetX, e.offsetY);
-  ctx.stroke();
-  ctx.closePath();
+function redraw() {
+  ctx?.clearRect(zero, zero, canvas.width, canvas.height);
+  for (const stroke of strokes) {
+    if (stroke.length > one) {
+      ctx?.beginPath();
+      const { x, y } = stroke[0];
+      ctx?.moveTo(x, y);
+      for (const { x, y } of stroke) {
+        ctx?.lineTo(x, y);
+      }
+      ctx?.stroke();
+    }
+  }
 }
