@@ -40,7 +40,11 @@ const strokes: Pair[][] = [];
 let currStroke: Pair[] = [];
 const redoStrokes: Pair[][] = [];
 
-const drawingChanged = new CustomEvent("drawing-changed");
+const drawing = new EventTarget();
+
+function notify(name: string) {
+  drawing.dispatchEvent(new Event(name));
+}
 
 canvas.addEventListener("mousedown", (e) => {
   setOffset(e);
@@ -49,30 +53,30 @@ canvas.addEventListener("mousedown", (e) => {
   strokes.push(currStroke);
   redoStrokes.splice(zero, redoStrokes.length);
   currStroke.push({ x: cursor.x, y: cursor.y });
-  canvas.dispatchEvent(drawingChanged);
+  notify("drawing-changed");
 });
 
 canvas.addEventListener("mousemove", (e) => {
   if (cursor.active) {
     setOffset(e);
     currStroke.push({ x: cursor.x, y: cursor.y });
-    canvas.dispatchEvent(drawingChanged);
+    notify("drawing-changed");
   }
 });
 
 canvas.addEventListener("mouseleave", (e) => {
   console.log(e);
   cursor.active = false;
-  canvas.dispatchEvent(drawingChanged);
+  notify("drawing-changed");
 });
 
 canvas.addEventListener("mouseup", (e) => {
   console.log(e);
   cursor.active = false;
-  canvas.dispatchEvent(drawingChanged);
+  notify("drawing-changed");
 });
 
-canvas.addEventListener("drawing-changed", (e) => {
+drawing.addEventListener("drawing-changed", (e) => {
   console.log(e);
   redraw();
 });
@@ -84,7 +88,7 @@ app.append(clearBtn);
 clearBtn.addEventListener("click", (e) => {
   console.log(e);
   strokes.splice(zero, strokes.length);
-  canvas.dispatchEvent(drawingChanged);
+  notify("drawing-changed");
 });
 
 const undoBtn = document.createElement("button");
@@ -95,7 +99,7 @@ undoBtn.addEventListener("click", (e) => {
   console.log(e);
   if (strokes.length > zero) {
     redoStrokes.push(strokes.pop()!);
-    canvas.dispatchEvent(drawingChanged);
+    notify("drawing-changed");
   }
 });
 
@@ -107,7 +111,7 @@ redoBtn.addEventListener("click", (e) => {
   console.log(e);
   if (redoStrokes.length > zero) {
     strokes.push(redoStrokes.pop()!);
-    canvas.dispatchEvent(drawingChanged);
+    notify("drawing-changed");
   }
 });
 
