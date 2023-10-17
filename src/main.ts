@@ -4,8 +4,7 @@ const app: HTMLDivElement = document.querySelector("#app")!;
 
 const gameName = "Julian's game";
 
-const zero = 0;
-const one = 1;
+const start = 0;
 const maxCanvasWidth = 256;
 const maxCanvasHeight = 256;
 
@@ -26,7 +25,7 @@ const ctx = canvas.getContext("2d");
 app.append(canvas);
 
 ctx!.fillStyle = "white";
-ctx!.fillRect(zero, zero, maxCanvasWidth, maxCanvasHeight);
+ctx!.fillRect(start, start, maxCanvasWidth, maxCanvasHeight);
 
 app.append(document.createElement("br"));
 
@@ -34,11 +33,11 @@ interface Pair {
   x: number;
   y: number;
 }
-const cursor = { active: false, x: zero, y: zero };
+const cursor = { active: false, x: start, y: start };
 
-const strokes: Pair[][] = [];
-let currStroke: Pair[] = [];
-const redoStrokes: Pair[][] = [];
+const strokes: StrokeCmd[] = [];
+let currCmd: StrokeCmd;
+const redoStrokes: StrokeCmd[] = [];
 
 const drawing = new EventTarget();
 
@@ -46,20 +45,35 @@ function notify(name: string) {
   drawing.dispatchEvent(new Event(name));
 }
 
+class StrokeCmd {
+  coords: Pair[];
+
+  constructor(x: number, y: number) {
+    this.coords = [{ x, y }];
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.beginPath();
+    const { x, y } = this.coords[start];
+    ctx.moveTo(x, y);
+    for (const { x, y } of this.coords) {
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+}
+
 canvas.addEventListener("mousedown", (e) => {
-  setOffset(e);
   cursor.active = true;
-  currStroke = [];
-  strokes.push(currStroke);
-  redoStrokes.splice(zero, redoStrokes.length);
-  currStroke.push({ x: cursor.x, y: cursor.y });
+  currCmd = new StrokeCmd(e.offsetX, e.offsetY);
+  strokes.push(currCmd);
+  redoStrokes.splice(start, redoStrokes.length);
   notify("drawing-changed");
 });
 
 canvas.addEventListener("mousemove", (e) => {
   if (cursor.active) {
-    setOffset(e);
-    currStroke.push({ x: cursor.x, y: cursor.y });
+    currCmd.coords.push({ x: e.offsetX, y: e.offsetY });
     notify("drawing-changed");
   }
 });
@@ -87,7 +101,7 @@ app.append(clearBtn);
 
 clearBtn.addEventListener("click", (e) => {
   console.log(e);
-  strokes.splice(zero, strokes.length);
+  strokes.splice(start, strokes.length);
   notify("drawing-changed");
 });
 
@@ -97,7 +111,7 @@ app.append(undoBtn);
 
 undoBtn.addEventListener("click", (e) => {
   console.log(e);
-  if (strokes.length > zero) {
+  if (strokes.length > start) {
     redoStrokes.push(strokes.pop()!);
     notify("drawing-changed");
   }
@@ -109,28 +123,13 @@ app.append(redoBtn);
 
 redoBtn.addEventListener("click", (e) => {
   console.log(e);
-  if (redoStrokes.length > zero) {
+  if (redoStrokes.length > start) {
     strokes.push(redoStrokes.pop()!);
     notify("drawing-changed");
   }
 });
 
-function setOffset(e: MouseEvent): void {
-  cursor.x = e.offsetX;
-  cursor.y = e.offsetY;
-}
-
 function redraw() {
-  ctx?.clearRect(zero, zero, canvas.width, canvas.height);
-  for (const stroke of strokes) {
-    if (stroke.length > one) {
-      ctx?.beginPath();
-      const { x, y } = stroke[0];
-      ctx?.moveTo(x, y);
-      for (const { x, y } of stroke) {
-        ctx?.lineTo(x, y);
-      }
-      ctx?.stroke();
-    }
-  }
+  ctx?.clearRect(start, start, canvas.width, canvas.height);
+  strokes.forEach((cmd) => cmd.display(ctx!));
 }
