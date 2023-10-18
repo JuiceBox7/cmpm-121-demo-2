@@ -8,6 +8,8 @@ const start = 0;
 const minDist = 1;
 const maxCanvasWidth = 256;
 const maxCanvasHeight = 256;
+const mouseX = 9.5;
+const mouseY = 3;
 
 document.title = gameName;
 
@@ -35,12 +37,19 @@ interface Pair {
   y: number;
 }
 
-const strokes: StrokeCmd[] = [];
+interface DrawingCmd {
+  display(ctx: CanvasRenderingContext2D): void;
+}
+
+const strokes: DrawingCmd[] = [];
 let currStrokeCmd: StrokeCmd;
 let currCursorCmd: CursorCmd | null;
-const redoStrokes: StrokeCmd[] = [];
+const redoStrokes: DrawingCmd[] = [];
 
 const drawing = new EventTarget();
+
+let sticker: StickerCmd | null;
+let emoji: string | null;
 
 let style = "thin";
 
@@ -80,16 +89,40 @@ class CursorCmd {
   }
 
   display(ctx: CanvasRenderingContext2D) {
+    let dot = ".";
+    if (emoji) dot = emoji;
     ctx.fillStyle = "black";
     ctx.font = "32px monospace";
-    ctx.fillText(".", this.x - 9.5, this.y + 3);
+    ctx.fillText(dot, this.x - mouseX, this.y + mouseY);
+  }
+}
+
+class StickerCmd {
+  x: number;
+  y: number;
+  emoji: string;
+
+  constructor(x: number, y: number, emoji: string) {
+    this.x = x;
+    this.y = y;
+    this.emoji = emoji;
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.font = "32px monospace";
+    ctx.fillText(this.emoji, this.x - mouseX, this.y + mouseY);
   }
 }
 
 canvas.addEventListener("mousedown", (e) => {
-  currStrokeCmd = new StrokeCmd(e.offsetX, e.offsetY, style);
-  strokes.push(currStrokeCmd);
-  redoStrokes.splice(start, redoStrokes.length);
+  if (emoji) {
+    sticker = new StickerCmd(e.offsetX, e.offsetY, emoji);
+    strokes.push(sticker);
+  } else {
+    currStrokeCmd = new StrokeCmd(e.offsetX, e.offsetY, style);
+    strokes.push(currStrokeCmd);
+    redoStrokes.splice(start, redoStrokes.length);
+  }
   notify("drawing-changed");
 });
 
@@ -124,6 +157,11 @@ drawing.addEventListener("tool-moved", (e) => {
   redraw();
 });
 
+drawing.addEventListener("tool-changed", (e) => {
+  console.log(e);
+  redraw();
+});
+
 const thinStyleBtn = document.createElement("button");
 thinStyleBtn.innerHTML = "Thin";
 app.append(thinStyleBtn);
@@ -131,6 +169,7 @@ app.append(thinStyleBtn);
 thinStyleBtn.addEventListener("click", (e) => {
   console.log(e);
   style = "thin";
+  emoji = null;
 });
 
 const thickStyleBtn = document.createElement("button");
@@ -140,6 +179,36 @@ app.append(thickStyleBtn);
 thickStyleBtn.addEventListener("click", (e) => {
   console.log(e);
   style = "thick";
+  emoji = null;
+});
+
+app.append(document.createElement("br"));
+
+const laughEmojiBtn = document.createElement("button");
+laughEmojiBtn.innerHTML = "😂";
+app.append(laughEmojiBtn);
+
+laughEmojiBtn.addEventListener("click", (e) => {
+  console.log(e);
+  emoji = "😂";
+});
+
+const smileEmojiBtn = document.createElement("button");
+smileEmojiBtn.innerHTML = "😊";
+app.append(smileEmojiBtn);
+
+smileEmojiBtn.addEventListener("click", (e) => {
+  console.log(e);
+  emoji = "😊";
+});
+
+const cryingEmojiBtn = document.createElement("button");
+cryingEmojiBtn.innerHTML = "😭";
+app.append(cryingEmojiBtn);
+
+cryingEmojiBtn.addEventListener("click", (e) => {
+  console.log(e);
+  emoji = "😭";
 });
 
 app.append(document.createElement("br"));
