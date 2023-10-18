@@ -41,18 +41,24 @@ const redoStrokes: StrokeCmd[] = [];
 
 const drawing = new EventTarget();
 
-function notify(name: string) {
-  drawing.dispatchEvent(new Event(name));
-}
+let style = "thin";
 
 class StrokeCmd {
   coords: Pair[];
+  style: string;
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, style: string) {
     this.coords = [{ x, y }];
+    this.style = style;
+  }
+
+  applyStyle(ctx: CanvasRenderingContext2D) {
+    if (this.style == "thin") ctx.lineWidth = 1;
+    if (this.style == "thick") ctx.lineWidth = 3.5;
   }
 
   display(ctx: CanvasRenderingContext2D) {
+    this.applyStyle(ctx);
     ctx.beginPath();
     const { x, y } = this.coords[start];
     ctx.moveTo(x, y);
@@ -65,7 +71,7 @@ class StrokeCmd {
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.active = true;
-  currCmd = new StrokeCmd(e.offsetX, e.offsetY);
+  currCmd = new StrokeCmd(e.offsetX, e.offsetY, style);
   strokes.push(currCmd);
   redoStrokes.splice(start, redoStrokes.length);
   notify("drawing-changed");
@@ -94,6 +100,26 @@ drawing.addEventListener("drawing-changed", (e) => {
   console.log(e);
   redraw();
 });
+
+const thinStyleBtn = document.createElement("button");
+thinStyleBtn.innerHTML = "Thin";
+app.append(thinStyleBtn);
+
+thinStyleBtn.addEventListener("click", (e) => {
+  console.log(e);
+  style = "thin";
+});
+
+const thickStyleBtn = document.createElement("button");
+thickStyleBtn.innerHTML = "Thick";
+app.append(thickStyleBtn);
+
+thickStyleBtn.addEventListener("click", (e) => {
+  console.log(e);
+  style = "thick";
+});
+
+app.append(document.createElement("br"));
 
 const clearBtn = document.createElement("button");
 clearBtn.innerHTML = "Clear";
@@ -132,4 +158,8 @@ redoBtn.addEventListener("click", (e) => {
 function redraw() {
   ctx?.clearRect(start, start, canvas.width, canvas.height);
   strokes.forEach((cmd) => cmd.display(ctx!));
+}
+
+function notify(name: string) {
+  drawing.dispatchEvent(new Event(name));
 }
