@@ -5,6 +5,7 @@ const app: HTMLDivElement = document.querySelector("#app")!;
 const gameName = "Julian's game";
 
 const start = 0;
+const minDist = 1;
 const maxCanvasWidth = 256;
 const maxCanvasHeight = 256;
 
@@ -33,10 +34,10 @@ interface Pair {
   x: number;
   y: number;
 }
-const cursor = { active: false, x: start, y: start };
 
 const strokes: StrokeCmd[] = [];
-let currCmd: StrokeCmd;
+let currStrokeCmd: StrokeCmd;
+let currCursorCmd: CursorCmd | null;
 const redoStrokes: StrokeCmd[] = [];
 
 const drawing = new EventTarget();
@@ -69,34 +70,56 @@ class StrokeCmd {
   }
 }
 
+class CursorCmd {
+  x: number;
+  y: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+
+  display(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = "black";
+    ctx.font = "32px monospace";
+    ctx.fillText(".", this.x - 9.5, this.y + 3);
+  }
+}
+
 canvas.addEventListener("mousedown", (e) => {
-  cursor.active = true;
-  currCmd = new StrokeCmd(e.offsetX, e.offsetY, style);
-  strokes.push(currCmd);
+  currStrokeCmd = new StrokeCmd(e.offsetX, e.offsetY, style);
+  strokes.push(currStrokeCmd);
   redoStrokes.splice(start, redoStrokes.length);
   notify("drawing-changed");
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (cursor.active) {
-    currCmd.coords.push({ x: e.offsetX, y: e.offsetY });
+  currCursorCmd = new CursorCmd(e.offsetX, e.offsetY);
+  notify("tool-moved");
+  if (e.buttons == minDist) {
+    currStrokeCmd.coords.push({ x: e.offsetX, y: e.offsetY });
     notify("drawing-changed");
   }
 });
 
-canvas.addEventListener("mouseleave", (e) => {
+canvas.addEventListener("mouseout", (e) => {
   console.log(e);
-  cursor.active = false;
-  notify("drawing-changed");
+  currCursorCmd = null;
+  notify("tool-moved");
 });
 
 canvas.addEventListener("mouseup", (e) => {
   console.log(e);
-  cursor.active = false;
+  notify("tool-moved");
   notify("drawing-changed");
 });
 
 drawing.addEventListener("drawing-changed", (e) => {
+  console.log(e);
+  redraw();
+});
+
+drawing.addEventListener("tool-moved", (e) => {
   console.log(e);
   redraw();
 });
@@ -158,6 +181,8 @@ redoBtn.addEventListener("click", (e) => {
 function redraw() {
   ctx?.clearRect(start, start, canvas.width, canvas.height);
   strokes.forEach((cmd) => cmd.display(ctx!));
+
+  if (currCursorCmd) currCursorCmd.display(ctx!);
 }
 
 function notify(name: string) {
