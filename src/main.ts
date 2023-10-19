@@ -8,7 +8,8 @@ const start = 0;
 const minDist = 1;
 const maxCanvasWidth = 256;
 const maxCanvasHeight = 256;
-const mouseX = 9.5;
+const mouseXThick = 9.5;
+const mouseXThin = 7;
 const mouseY = 3;
 
 document.title = gameName;
@@ -92,8 +93,14 @@ class CursorCmd {
     let dot = ".";
     if (emoji) dot = emoji;
     ctx.fillStyle = "black";
-    ctx.font = "32px monospace";
-    ctx.fillText(dot, this.x - mouseX, this.y + mouseY);
+    if (style == "thin") {
+      ctx.font = "16px monospace";
+      ctx.fillText(dot, this.x - mouseXThin, this.y + mouseY);
+    }
+    if (style == "thick") {
+      ctx.font = "32px monospace";
+      ctx.fillText(dot, this.x - mouseXThick, this.y + mouseY);
+    }
   }
 }
 
@@ -110,7 +117,7 @@ class StickerCmd {
 
   display(ctx: CanvasRenderingContext2D) {
     ctx.font = "32px monospace";
-    ctx.fillText(this.emoji, this.x - mouseX, this.y + mouseY);
+    ctx.fillText(this.emoji, this.x - mouseXThick, this.y + mouseY);
   }
 }
 
