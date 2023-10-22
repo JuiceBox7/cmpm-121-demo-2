@@ -61,6 +61,8 @@ let emoji: string | null;
 
 let style = "thin";
 
+let color = "#000000";
+
 const drawing = new EventTarget();
 
 // --- Classes ---
@@ -68,10 +70,12 @@ const drawing = new EventTarget();
 class StrokeCmd {
   coords: Pair[];
   style: string;
+  color: string;
 
-  constructor(x: number, y: number, style: string) {
+  constructor(x: number, y: number, style: string, color: string) {
     this.coords = [{ x, y }];
     this.style = style;
+    this.color = color;
   }
 
   applyStyle(ctx: CanvasRenderingContext2D) {
@@ -81,6 +85,7 @@ class StrokeCmd {
 
   display(ctx: CanvasRenderingContext2D) {
     this.applyStyle(ctx);
+    ctx.strokeStyle = this.color;
     ctx.beginPath();
     const { x, y } = this.coords[start];
     ctx.moveTo(x, y);
@@ -94,10 +99,12 @@ class StrokeCmd {
 class CursorCmd {
   x: number;
   y: number;
+  color: string;
 
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, color: string) {
     this.x = x;
     this.y = y;
+    this.color = color;
   }
 
   display(ctx: CanvasRenderingContext2D) {
@@ -106,7 +113,7 @@ class CursorCmd {
       dot = emoji;
       ctx.font = "32px monospace";
     } else {
-      ctx.fillStyle = "black";
+      ctx.fillStyle = this.color;
       if (style == "thin") {
         ctx.font = "16px monospace";
       }
@@ -142,7 +149,7 @@ canvas.addEventListener("mousedown", (e) => {
     sticker = new StickerCmd(e.offsetX, e.offsetY, emoji);
     strokes.push(sticker);
   } else {
-    currStrokeCmd = new StrokeCmd(e.offsetX, e.offsetY, style);
+    currStrokeCmd = new StrokeCmd(e.offsetX, e.offsetY, style, color);
     strokes.push(currStrokeCmd);
     redoStrokes.splice(start, redoStrokes.length);
   }
@@ -150,7 +157,7 @@ canvas.addEventListener("mousedown", (e) => {
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  currCursorCmd = new CursorCmd(e.offsetX, e.offsetY);
+  currCursorCmd = new CursorCmd(e.offsetX, e.offsetY, color);
   notify("tool-moved");
   if (e.buttons == minDist) {
     currStrokeCmd.coords.push({ x: e.offsetX, y: e.offsetY });
@@ -282,6 +289,22 @@ redoBtn.addEventListener("click", (e) => {
   if (redoStrokes.length > start) {
     strokes.push(redoStrokes.pop()!);
     notify("drawing-changed");
+  }
+});
+
+app.append(document.createElement("br"));
+
+// --- Color Button ---
+
+const colorInput = document.createElement("input");
+colorInput.type = "color";
+colorInput.value = "#000000";
+app.append(colorInput);
+
+colorInput.addEventListener("input", (e) => {
+  if (e.target instanceof HTMLInputElement) {
+    const colorChoice = e.target.value;
+    color = colorChoice;
   }
 });
 
