@@ -4,6 +4,8 @@ const app: HTMLDivElement = document.querySelector("#app")!;
 
 const gameName = "Julian's game";
 
+// --- Variables to Avoid Magic Numbers ---
+
 const start = 0;
 const minDist = 1;
 const maxCanvasWidth = 256;
@@ -12,17 +14,21 @@ const mouseXThick = 9.5;
 const mouseXThin = 7;
 const mouseY = 3;
 
+// --- Headers ---
+
 document.title = gameName;
 
 const header = document.createElement("h1");
 header.innerHTML = gameName;
 app.append(header);
 
-const appName = "Canvas";
+const appName = "Sketchpad";
 
 const appTitle = document.createElement("h1");
 appTitle.innerHTML = appName;
 app.append(appTitle);
+
+// --- Canvas ---
 
 const canvas = document.createElement("canvas");
 const ctx = canvas.getContext("2d");
@@ -33,6 +39,8 @@ ctx!.fillRect(start, start, maxCanvasWidth, maxCanvasHeight);
 
 app.append(document.createElement("br"));
 
+// --- Interfaces ---
+
 interface Pair {
   x: number;
   y: number;
@@ -41,6 +49,8 @@ interface Pair {
 interface DrawingCmd {
   display(ctx: CanvasRenderingContext2D): void;
 }
+
+// --- Arrays and Variables ---
 
 const strokes: DrawingCmd[] = [];
 let currStrokeCmd: StrokeCmd;
@@ -53,6 +63,8 @@ let sticker: StickerCmd | null;
 let emoji: string | null;
 
 let style = "thin";
+
+// --- Classes ---
 
 class StrokeCmd {
   coords: Pair[];
@@ -91,16 +103,19 @@ class CursorCmd {
 
   display(ctx: CanvasRenderingContext2D) {
     let dot = ".";
-    if (emoji) dot = emoji;
-    ctx.fillStyle = "black";
-    if (style == "thin") {
-      ctx.font = "16px monospace";
-      ctx.fillText(dot, this.x - mouseXThin, this.y + mouseY);
-    }
-    if (style == "thick") {
+    if (emoji) {
+      dot = emoji;
       ctx.font = "32px monospace";
-      ctx.fillText(dot, this.x - mouseXThick, this.y + mouseY);
+    } else {
+      ctx.fillStyle = "black";
+      if (style == "thin") {
+        ctx.font = "16px monospace";
+      }
+      if (style == "thick") {
+        ctx.font = "32px monospace";
+      }
     }
+    ctx.fillText(dot, this.x - mouseXThin, this.y + mouseY);
   }
 }
 
@@ -120,6 +135,8 @@ class StickerCmd {
     ctx.fillText(this.emoji, this.x - mouseXThick, this.y + mouseY);
   }
 }
+
+// --- Canvas Event Listeners ---
 
 canvas.addEventListener("mousedown", (e) => {
   if (emoji) {
@@ -154,6 +171,8 @@ canvas.addEventListener("mouseup", (e) => {
   notify("drawing-changed");
 });
 
+// --- Drawing Event Listeners ---
+
 drawing.addEventListener("drawing-changed", (e) => {
   console.log(e);
   redraw();
@@ -168,6 +187,10 @@ drawing.addEventListener("tool-changed", (e) => {
   console.log(e);
   redraw();
 });
+
+// ----- Buttons -----
+
+// --- Brush Styles ---
 
 const thinStyleBtn = document.createElement("button");
 thinStyleBtn.innerHTML = "Thin";
@@ -190,6 +213,8 @@ thickStyleBtn.addEventListener("click", (e) => {
 });
 
 app.append(document.createElement("br"));
+
+// --- Emojis ---
 
 const laughEmojiBtn = document.createElement("button");
 laughEmojiBtn.innerHTML = "😂";
@@ -218,7 +243,19 @@ cryingEmojiBtn.addEventListener("click", (e) => {
   emoji = "😭";
 });
 
+const customStickerBtn = document.createElement("button");
+customStickerBtn.innerHTML = "Custom";
+app.append(customStickerBtn);
+
+customStickerBtn.addEventListener("click", (e) => {
+  console.log(e);
+  const input = prompt("Enter custom sticker:");
+  if (input) emoji = input;
+});
+
 app.append(document.createElement("br"));
+
+// --- Clear/Undo/Redo Buttons ---
 
 const clearBtn = document.createElement("button");
 clearBtn.innerHTML = "Clear";
@@ -253,6 +290,8 @@ redoBtn.addEventListener("click", (e) => {
     notify("drawing-changed");
   }
 });
+
+// --- Global Functions ---
 
 function redraw() {
   ctx?.clearRect(start, start, canvas.width, canvas.height);
